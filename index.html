@@ -29,6 +29,10 @@ li b{display:block;color:var(--vert)}
 .chiffre{font-family:Georgia,serif;font-size:3rem;color:var(--vert);margin:4px 0}
 .petit{font-size:.9rem;color:#555}
 .cache{display:none}
+textarea{width:100%;min-height:180px;font-size:1rem;padding:12px;border:2px solid var(--vert);border-radius:12px;font-family:inherit;margin-bottom:12px}
+.lettre{background:#fff;border-radius:12px;padding:16px;margin:16px 0;font-size:.95rem}
+.flou{filter:blur(5px);user-select:none;pointer-events:none}
+.sec{margin-top:12px;background:transparent}
 footer{margin-top:40px;font-size:.85rem;color:#666;text-align:center}
 </style>
 </head>
@@ -60,7 +64,26 @@ footer{margin-top:40px;font-size:.85rem;color:#666;text-align:center}
 <p class="chiffre" id="chiffre"></p>
 <p class="petit">Estimation indicative sur 12 mois, à partir de tes réponses. Ce n'est pas une promesse de remboursement.</p>
 <p id="phrase2"></p>
-<button class="bouton" id="suite">Voir comment les récupérer</button>
+<button class="bouton" id="suite">Analyser mon relevé (gratuit)</button>
+</section>
+
+<section id="avant" class="cache">
+<h2>Colle le texte de ton relevé</h2>
+<p class="petit">Ouvre ton relevé dans l'appli de ta banque, copie les lignes d'opérations et colle-les ici. L'analyse se fait sur ton téléphone : rien n'est envoyé.</p>
+<textarea id="releve" placeholder="Colle ici les lignes de ton relevé…"></textarea>
+<button class="bouton" id="analyse">Repérer mes frais</button>
+<div id="sortie" class="cache">
+<p class="chiffre" id="total"></p>
+<p id="nb"></p>
+<ul id="liste"></ul>
+<div class="lettre">
+<b>Ton courrier de réclamation</b>
+<p id="debut"></p>
+<p class="flou">Je vous demande donc le remboursement de ces frais ou, à défaut, une réponse écrite détaillant leur base contractuelle. Dans l'attente de votre retour sous un délai de quinze jours, je vous prie d'agréer, Madame, Monsieur, mes salutations distinguées. Pièces jointes : relevés de compte.</p>
+</div>
+<button class="bouton" id="debloque">Débloquer mon courrier</button>
+<p class="note">Le paiement arrive bientôt (étape suivante).</p>
+</div>
 </section>
 
 <footer>© Agios</footer>
@@ -73,7 +96,8 @@ var Q=[
 ];
 var i=0,rep=[];
 function $(id){return document.getElementById(id)}
-function montre(id){["accueil","quiz","resultat"].forEach(function(s){$(s).className=s==id?"":"cache"})}
+function montre(id){["accueil","quiz","resultat","avant"].forEach(function(s){$(s).className=s==id?"":"cache"});window.scrollTo(0,0)}
+function euros(v){return v.toFixed(2).replace(".",",")+" €"}
 function affiche(){
  var q=Q[i];
  $("question").textContent=q.t;
@@ -96,8 +120,31 @@ function resultat(){
  $("phrase2").textContent=p;
  montre("resultat");
 }
+function analyse(){
+ var re=/commission d.?intervention|frais de rejet|rejet de pr|rejet de ch|frais d.?incident|agios|lettre d.?information/i;
+ var mont=/\d+(?:[ \u00a0]\d{3})*[,.]\d{2}/g;
+ var trouves=[],total=0;
+ $("releve").value.split("\n").forEach(function(l){
+  if(re.test(l)){
+   var m=l.match(mont);
+   if(m){
+    var v=parseFloat(m[m.length-1].replace(/[ \u00a0]/g,"").replace(",","."));
+    var note=(/intervention/i.test(l)&&v>8)?" — au-dessus de 8 €, plafond habituel par opération (à vérifier selon ton offre)":"";
+    trouves.push(l.trim()+note);total+=v;
+   }
+  }
+ });
+ var ul=$("liste");ul.innerHTML="";
+ trouves.forEach(function(t){var li=document.createElement("li");li.textContent=t;ul.appendChild(li)});
+ $("total").textContent=euros(total);
+ $("nb").textContent=trouves.length==0?"Aucune ligne de frais repérée dans le texte collé. Vérifie que tu as collé les lignes d'opérations.":trouves.length+" ligne(s) de frais repérée(s) dans le texte collé :";
+ $("debut").textContent="Objet : demande de remboursement de frais bancaires. Madame, Monsieur, je constate sur mes relevés des frais d'un montant total de "+euros(total)+" que je conteste.";
+ $("sortie").className="";
+}
 $("go").onclick=function(){i=0;rep=[];affiche();montre("quiz")};
-$("suite").onclick=function(){alert("Bientôt : l'avant-goût gratuit (étape 3).")};
+$("suite").onclick=function(){montre("avant")};
+$("analyse").onclick=analyse;
+$("debloque").onclick=function(){alert("Le paiement arrive à la prochaine étape.")};
 </script>
 </body>
 </html>
